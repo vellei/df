@@ -1,0 +1,105 @@
+#!/bin/bash
+# Synchronize dotfiles in workspace with
+# home directory.
+
+function usage() {
+	cat <<-EOF
+		Manage dotfiles with rsync
+
+		Usage: config [--name|-n NAME] [--dryrun|-d] [--prefix|-p PREFIX] [--help|-h]
+
+		-n|--name      The name of the project to load
+		-p|--prefix    Common prefix to prepend to all destinations (defaults to \$HOME)
+		-d|--dry-run   Print changes, but don't perform any operations
+		-h|--help      Print this usage message
+	
+		Requirements:
+		- rsync
+		- jq
+	EOF
+}
+
+# Synchronizes source with destination
+function synchronize() {
+	src="$1"
+	dest="$2"
+	args="--recursive --checksum --links --perms --times --mkpath --executability --out-format '%f'"
+
+	# Correctly copy directories
+	if [[ -d "$1" ]]; then
+		src="$1/*"
+		dest="$2/"
+	fi
+
+	if [[ ${dry_run} ]]; then
+		args="${args} --dry-run"
+	fi
+
+	rsync ${args} ${src} ${dest}
+}
+
+for prog in "jq" "rsync"; do
+	if ! which "${prog}" &>/dev/null; then
+		echo "${prog} not installed"
+		exit 1
+	fi
+done
+
+while [[ ${#} -gt 0 ]]; do
+	case "$1" in
+		--prefix|-p)
+			if [[ -n "$2" ]]; then
+				prefix="$2"
+			else
+				usage
+				exit 1
+			fi
+			shift
+			;;
+		--dry-run|-d)
+			dry_run=1
+			;;
+		--name|-n)
+			if [[ -n "$2" ]]; then
+				name="$2"
+			fi
+			shift
+			;;
+		--help|-h)
+			usage
+			exit 0
+			;;
+		*)
+			usage
+			exit 1
+			;;
+	esac
+	shift
+done
+
+configs="common"
+
+if [[ -z "${prefix}" ]]; then
+	prefix="${HOME}"
+fi
+
+if [[ -n "${name}" ]]; then
+	configs="${configs} ${name}"
+fi
+
+for cfg in ${configs}; do
+	jq -r --arg cfg ${cfg} '
+		.[]
+		| select(.config == $cfg)
+		| [.config, .source, .destination, .program]
+		| @tsv
+	' config.json | while read -r conf source destination program; do
+		synchronize "${conf}/${source}" "${prefix}/${destination}"
+	done
+done
+
+# if [[ -x "./post_install" ]]; then
+# 	./post_install
+# else
+# 	info "Missing post installation script, skipping"
+# fi

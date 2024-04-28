@@ -1,0 +1,25 @@
+#!/bin/bash
+# Create a python virtual environment in CWD
+#
+# $? - Whether the virtual environment was created
+
+source ./utils
+
+for prog in "python3"; do
+	if ! which ${prog} &>/dev/null; then
+		error "${prog} not installed"
+		exit 1
+	fi
+done
+
+info "Creating virtual environment"
+python3 -m venv venv
+
+source venv/bin/activate
+
+if [[ -f ".gitignore" ]]; then
+	echo "venv" >>.gitignore
+fi
+
+info "Upgrading pip"
+pip install pip --upgrade

@@ -1,0 +1,25 @@
+history=false
+drun-launch=true
+terminal="alacritty -e"
+font=/usr/share/fonts/ttf-maple/MapleMono-Italic.ttf
+font-size=11
+horizontal = true
+anchor = top
+width = 100%
+height = 38
+outline-width = 0
+border-width = 0
+min-input-width = 120
+result-spacing = 30
+padding-top = 8
+padding-bottom = 0
+padding-left = 20
+padding-right = 0
+prompt-text = "Run: "
+prompt-padding = 30
+clip-to-padding = false
+
+text-color = #cdd6f4
+prompt-color = #f38ba8
+selection-color = #f9e2af
+background-color = #1e1e2e

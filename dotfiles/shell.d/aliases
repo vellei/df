@@ -1,0 +1,45 @@
+#!/bin/bash
+## Aliases
+
+### Pacman/yay
+# Update all AUR packages
+alias update-aur="yay -Sua --noconfirm"
+
+# Update all standard and AUR packages
+alias update-all="yay -Syu --noconfirm"
+
+# Update all standard pacakges
+alias update-pac="pacman -Syu"
+
+### Colorize output
+alias grep="grep --color=auto"
+
+### Remap standard commands
+# cat -> bat
+alias cat="bat --force-colorization --theme Catppuccin-mocha"
+
+# cat but plain
+alias pat="bat --plain"
+
+# Show whitespace, useful for cleaing up files before commiting
+alias spat="bat --plain --show-all"
+
+# Better diff
+alias git_diff="bat --diff --force-colorization --theme=Catppuccin-mocha"
+alias diff="diff --color always -u"
+
+# ls -> exa
+alias ls="eza -lah --color=always --group-directories-first"
+alias lt="eza -lT --color=always --group-directories-first"
+
+### Confirm before overwriting any files
+alias cp="cp -i"
+alias mv="mv -i"
+alias rm="rm -i"
+
+### Misc
+alias df="df -h"
+
+### Script aliases
+alias vjson="json::validate"
+alias pjson="json::print"

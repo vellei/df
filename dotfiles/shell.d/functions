@@ -1,0 +1,75 @@
+#!/bin/bash
+
+# Better upwards navigation
+# Usage: up <num>
+function up() {
+	local d=""
+	local limit="$1"
+
+	# Default to limit of 1
+	if [[ -z "${limit}" ]] || [[ ${limit} -le 0 ]]; then
+		limit=1
+	fi
+
+	for ((i=1;i<=limit;i++)); do
+		d="../$d"
+	done
+
+	# perform cd. Show error if cd fails
+	if ! cd "$d"; then
+		echo "Couldn't go up ${limit} dirs."
+	fi
+}
+
+# Search with fzf and open file in ${EDITOR}
+# usage: felix <directory to search in>
+function felix() {
+	if ! which fzf &>/dev/null; then
+		echo "Install fzf"
+		return 1
+	fi
+
+	if [[ ${#} -gt 0 ]]; then
+		if [[ -d "$1" ]]; then
+			cd "$1" || return 1
+		fi
+	fi
+	
+	if [[ -n "${EDITOR}" ]]; then
+		${EDITOR} "$(fzf --select-1 --exit-0)"
+	fi
+}
+
+# Simple interface for extracting compressed files
+# usage: extract <tarf file>
+function extract() {
+	if [[ -f "$1" ]]; then
+		case $1 in
+			*.tar.bz2) tar xfj $1 ;;
+			*.tar.gz|*.tar) tar xzf $1 ;;
+			*.zip) bsdtar xvf $1 ;;
+			*) echo "$1 cannot be extracted currently"
+		esac
+	fi
+}
+
+# List contents of directory after cd'ing
+# usage: cs <path>
+function cs() {
+	if [[ -n "$1" ]]; then
+		cd "$1" || return 1
+		exa -lah
+	fi
+}
+
+# Install given packages
+# usage: pinstall package1 package2 ...
+function pinstall() {
+	sudo pacman --sync "$@"
+}
+
+# Refresh pacman database
+# usage: pprefresh
+function prefresh() {
+	sudo pacman --sync --refresh
+}

@@ -1,0 +1,32 @@
+#!/bin/bash
+
+source ./utils
+
+for prog in "dmenu"; do
+	if ! which ${prog} &>/dev/null; then
+		error "${prog} not installed"
+		exit 1
+	fi
+done
+
+choice="$(echo -e "Shutdown\nReboot\nLogout\nCancel" | dmenu -i -c -l 4)"
+
+case "${choice}" in
+Shutdown)
+	poweroff
+	;;
+Reboot)
+	reboot
+	;;
+Quit)
+	if which awesome-client &>/dev/null; then
+		awesome-client 'awsome.quit()'
+	elif which dwm &>/dev/null; then
+		killall dwm
+	elif which bspc &>/dev/null; then
+		bspc quit
+	fi
+	;;
+*)
+	;;
+esac

@@ -1,0 +1,22 @@
+#!/bin/bash
+# Prints json with jq
+#
+# $1 - The file path
+# &0 - The file contents
+# &1 - The formatted JSON
+# $? - Whether the JSON was valid or not
+
+source ./utils
+
+for prog in "jq"; do
+	if ! which ${prog} &>/dev/null; then
+		error "${prog} not installed"
+		exit 1
+	fi
+done
+
+if [[ -n "$1" ]]; then
+	jq -r '.' "$1"	
+else
+	cat | jq -r '.'
+fi

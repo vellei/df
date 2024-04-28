@@ -1,0 +1,47 @@
+#!/bin/bash
+# Take a screenshot with maim
+#
+# $1 - The type of screenshot to take (area or full)
+# $? - Whether the screenshot was successfully taken
+
+function usage() {
+	:
+}
+
+if [[ ${#} -eq 0 ]]; then
+	error "Missing screenshot type"
+	exit 1
+fi
+
+for prog in "maim"; do
+	if ! which ${prog} &>/dev/null; then
+		error "${prog} not installed"
+		exit 1
+	fi
+done
+
+if [[ ! -d "${HOME}/pictures/screenshots" ]]; then
+	mkdir -p "${HOME}/pictures/screenshots" &>/dev/null
+fi
+
+while [[ ${#} -gt 0 ]]; do
+	case "$1" in
+		full|--full|-f)
+			args="-u"
+			;;
+		area|--area-a)
+			args="-u -s"
+			;;
+		help|--help|-h)
+			usage()
+			exit 0
+			;;
+		*)
+			usage()
+			exit 1
+			;;
+	esac
+	shift
+done
+
+maim "${args}" "${HOME}/pictures/screenshots/$(date +%s).png"
