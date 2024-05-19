@@ -6,7 +6,7 @@ function info() {
 	local clear=$'\e[0m'
 
 	if [[ -z "${1}" ]]; then
-		exit 1
+		return 1
 	fi
 	
 	echo "${color}Info${clear} ${1}"
@@ -17,7 +17,7 @@ function warning() {
 	local clear=$'\e[0m'
 
 	if [[ -z "${1}" ]]; then
-		exit 1
+		return 1
 	fi
 	
 	echo "${color}Warning${clear} ${1}"
@@ -28,8 +28,17 @@ function error() {
 	local clear=$'\e[0m'
 
 	if [[ -z "${1}" ]]; then
-		exit 1
+		return 1
 	fi
 	
 	echo "${color}Error${clear} ${1}"
+}
+
+function verify_installed() {
+	for command in $@; do
+		if ! command -v "${command}" >/dev/null; then
+			error "${command} not installed}"
+			return 1
+		fi
+	done
 }

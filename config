@@ -2,6 +2,10 @@
 # Synchronize dotfiles in workspace with
 # home directory.
 
+
+wayland_progs=""
+xorg_progs=""
+
 function usage() {
 	cat <<-EOF
 		Manage dotfiles with rsync
@@ -97,9 +101,3 @@ for cfg in ${configs}; do
 		synchronize "${conf}/${source}" "${prefix}/${destination}"
 	done
 done
-
-# if [[ -x "./post_install" ]]; then
-# 	./post_install
-# else
-# 	info "Missing post installation script, skipping"
-# fi

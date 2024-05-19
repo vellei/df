@@ -1,0 +1,88 @@
+#!/bin/bash
+# Take a screenshot with maim
+#
+# $1 - The type of screenshot to take (area or full)
+# $? - Whether the screenshot was successfully taken
+
+if [[ ${#} -eq 0 ]]; then
+	error "Missing screenshot type"
+	exit 1
+fi
+
+if ! verify_installed "jq maim"; then
+	exit 1
+fi
+
+function screenshot() {
+	case "$1" in
+	full|--full|-f)
+		args="-u"
+		;;
+	area|--area-a)
+		args="-u -s"
+		;;
+	esac
+
+	if [[ ! -d "${HOME}/pictures/screenshots" ]]; then
+		mkdir -p "${HOME}/pictures/screenshots" >/dev/null
+	fi
+
+	maim "${args}" "${HOME}/pictures/screenshots/$(date +%s).png"
+}
+
+# TODO: clean
+function random_wallpaper() {
+	local wallpaper_dir="${HOME}/pictures/wallpapers"
+	local files=$(find $HOME/pictures/wallpapers -type f -regex '.*.[png|jpg|jpeg]$' ! -name 'background.*')
+	local num_files=$(echo "${files}" | sed 's/ /\n/' | wc -l)
+	local index=$((RANDOM % num_files + 1))
+	local wallpaper=$(echo ${files} | cut -f${index} -d' ')
+	local file_type=$(echo "${wallpaper}" | sed 's/^.*\.//')
+	cp ${wallpaper} ${wallpaper_dir}/background.${file_type}
+}
+
+function powermenu() {
+	# TODO: tofi, rofi, etc
+	choice="$(echo -e "Shutdown\nReboot\nLogout\nCancel" | dmenu -i -c -l 4)"
+
+	case "${choice}" in
+	Shutdown)
+		poweroff
+		;;
+	Reboot)
+		reboot
+		;;
+	Quit)
+		if command -v awesome-client >/dev/null; then
+			awesome-client 'awsome.quit()'
+		elif command -v dwm >/dev/null; then
+			killall dwm
+		elif command -v bspc >/dev/null; then
+			bspc quit
+		elif command -v hyprctl >/dev/null; then
+			# TODO
+			:
+		fi
+		;;
+	*)
+		;;
+	esac
+}
+
+while [[ ${#} -gt 0 ]]; do
+	case "$1" in
+	screenshot)
+		screenshot "$*"
+		;;
+	powermenu)
+		powermenu
+		;;
+	random-wallpaper)
+		random_wallpaper
+		;;
+	*)
+		exit 1
+		;;
+	esac
+	shift
+done
