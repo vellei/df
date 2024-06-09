@@ -7,10 +7,6 @@
 # - [ ] Concurrency
 # - [ ] Remove sponsor segments
 # - [ ] Rate limiting
-# - [ ] Error handling when 1080 not available
-# - [ ] Verify format requested is available
-# - [ ] Support configurable resolution
-# - [ ] Output JSON
 # - [ ] don't re-encode the video for performance
 # - [ ] Create filename and store it instead of getting it again
 # - [ ] trap ctrl-c and delete partial files if they were created
@@ -25,98 +21,121 @@ function usage() {
 	cat <<-EOF
 		yt-dlp wrapper
 
-		usage: ytd [--directory|-d <output_dir>] [--audio|-a] [--video|-v] [--output|-o <filename>]
+		usage: ytd [OPTIONS] URL
+
+		OPTIONS:
+			--audio|-a
+			--batch-file|-b <batch_file>
+			--directory|-d <output_dir>
+			--help|-h
+			--output|-o <filename>
+			--video|-v
 	EOF
 }
 
-args='--restrict-filenames --output "%(title)s.%(ext)s" --no-progress'
+args='--restrict-filenames --output %(title)s --no-progress'
 
 while [[ $# -gt 0 ]]; do
 	case "$1" in
-		"--output"|"-o")
-			output=${1}
+		--output|-o)
+			output=${2}
+			shift
 			;;
 		--directory|-d)
-			if [[ ! -d "${1}" ]]; then
+			if [[ ! -d "${2}" ]]; then
 				info "Creating output directory ${1}"
-				mkdir -p "${1}"
+				mkdir -p "${2}"
 			fi
-			output_dir="${1}"
+			output_dir="${2}"
+			shift
 			;;
-		# "--audio"|"-a")
-		# 	# TODO: Not always available
-		# 	args="${args} --format \"bestaudio[ext=m4a]\" --extract-audio"
-		# 	output_dir=${HOME}/music
-		# 	;;
-		# "--video"|"-v")
-		# 	# TODO: Not always available
-		# 	args="${args} --format \"bestvideo[height=1080][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best\""
-		# 	output_dir=${HOME}/video
-		# 	;;
+		--audio|-a)
+			args="${args} --extract-audio"
+			audio=1
+			;;
+		--video|-v)
+			# TODO: Restrict to 1080p or less
+			video=1
+			;;
 		# "--section"|"-s")
-			# if [[ -z "$2" ]]; then
-			# 	error "Please provide a timeframe to download"
-			# 	exit 1
-			# fi
+		#  if [[ -z "$2" ]]; then
+		#  	error "Please provide a timeframe to download"
+		#  	exit 1o")
+		#  fi
 
-			# # Fix args
-			# if start=$(echo ${2%-*} | grep -E '[0-9]{2}:[0-9]{2}:[0-9]{2}'); then
-			# 	:
-			# elif echo ${2%-*} | grep -w "start" &>/dev/null; then
-			# 	start="00:00:00"
-			# else
-			# 	error "Invalid format for start time"
-			# 	exit 1
-			# fi
+		#  # Fix args
+		#  if start=$(echo ${2%-*} | grep -E '[0-9]{2}:[0-9]{2}:[0-9]{2}'); then
+		#  	:
+		#  elif echo ${2%-*} | grep -w "start" &>/dev/null; then
+		#  	start="00:00:00"
+		#  else
+		#  	error "Invalid format for start time"
+		#  	exit 1
+		#  fi
 
-			# ffmpeg_args="${ffmpeg_args} -s ${start}"
+		#  ffmpeg_args="${ffmpeg_args} -s ${start}"
 
-			# if end=$(echo ${2##*-} | grep -E '[0-9]{2}:[0-9]{2}:[0-9]{2}'); then
-			# elif ! echo ${2##*-} | grep -w "end" &>/dev/null; then
-			# 	error "Invalid format for end time"
-			# 	exit 1
-			# fi
-			# ffmpeg_args="${ffmpeg_args} -to ${end}"
+		#  if end=$(echo ${2##*-} | grep -E '[0-9]{2}:[0-9]{2}:[0-9]{2}'); then
+		#  elif ! echo ${2##*-} | grep -w "end" &>/dev/null; then
+		#  	error "Invalid format for end time"
+		#  	exit 1
+		#  fi
+		#  ffmpeg_args="${ffmpeg_args} -to ${end}"
 
-			# section=1
-			# shift
-			# :
-			# ;;
-		"--help"|"-h")
-			usage
-			exit 0
+		#  section=1
+		#  shift
+		#  ;;
+		--help|-h)
+			usage && exit 0
 			;;
-		"--batch-file"|"-b")
-			# if [[ ! -f "$2" ]]; then
-			# 	error "File does not exist"
-			# 	exit 1
-			# fi
-			# args="${args} --batch-file $2"
-			# shift
+		--batch-file|-b)
+			if [[ ! -f "$2" ]]; then
+			error "File does not exist" && exit 1
+			fi
+			args="${args} --batch-file $2"
+			shift
 			;;
 		*)
 			if [[ -z ${1} ]]; then
-				error "Missing URL"
-				exit 1
+				error "Missing URL" && exit 1
 			fi
+			url="$(printf "$*")"
 
-			url="$(printf "$*" | jq -sRr '@uri')"
 			if ! is_url "${url}"; then
 				error "${url} is not valid http(s) url"
 				exit 1
 			fi
 
-			if ! echo "${url}" | grep "youtube" >/dev/null; then
-				error "Please provide a youtube URL"
-				exit 1
+			if ! echo "${url}" | grep -F "youtube" >/dev/null; then
+				error "Please provide a youtube URL" && exit 1
 			fi
 			;;
 	esac
 	shift
 done
 
+if [[ ${audio} ]] && [[ ! ${output_dir} ]]; then
+	output_dir=${HOME}/music
+elif [[ ${video} ]] && [[ ! ${output_dir} ]]; then
+	output_dir=${HOME}/video
+fi
+
+if [[ -f ${output_dir}/${2} ]]; then
+	error "${output_dir}/${2} already exist" && exit 1
+fi
+
+# TODO: get extension
+# old_filename=$(yt-dlp ${args} --dump-json ${url} | jq -re '.filename')
+# new_filename=$(echo "${old_filename}" | tr '[A-Z]' '[a-z]')
+
 info "Executing: yt-dlp ${args} ${url}"
 yt-dlp ${args} ${url}
+
+# if [[ ! -f ${output_dir}/${old_filename} ]]; then
+# 	error "File missing" && exit 1
+# fi
+
+# mv ${old_filename} ${output_dir}/${new_filename}
 
 # if [[ ${section} ]]; then
 # 	info "Cutting video to given timestamps"
