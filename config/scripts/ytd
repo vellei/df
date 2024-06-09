@@ -7,78 +7,92 @@
 # - [ ] Concurrency
 # - [ ] Remove sponsor segments
 # - [ ] Rate limiting
-# - [ ] Need to url encode ampersands or remove them... or wrap in parentheses
 # - [ ] Error handling when 1080 not available
+# - [ ] Verify format requested is available
+# - [ ] Support configurable resolution
+# - [ ] Output JSON
+# - [ ] don't re-encode the video for performance
+# - [ ] Create filename and store it instead of getting it again
+# - [ ] trap ctrl-c and delete partial files if they were created
 
 source ./utils
 
-for prog in "yt-dlp" "ffmpeg"; do
-	if ! which ${prog} &>/dev/null; then
-		error "${prog} not installed"
-		exit 1
-	fi
-done
+if ! verify_installed yt-dlp ffmpeg jq; then
+	exit 1
+fi
+
+function usage() {
+	cat <<-EOF
+		yt-dlp wrapper
+
+		usage: ytd [--directory|-d <output_dir>] [--audio|-a] [--video|-v] [--output|-o <filename>]
+	EOF
+}
 
 args='--restrict-filenames --output "%(title)s.%(ext)s" --no-progress'
 
 while [[ $# -gt 0 ]]; do
 	case "$1" in
 		"--output"|"-o")
-			if [[ ! -d "${2}" ]]; then
-				error "Argument is not a directory"
-				exit 1
-			fi
-			output=${2}
+			output=${1}
 			;;
-		"--audio"|"-a")
-			# TODO: Not always available
-			args="${args} --format \"bestaudio[ext=m4a]\" --extract-audio"
-			output=${HOME}/music
-			;;
-		"--video"|"-v")
-			# TODO: Not always available
-			args="${args} --format \"bestvideo[height=1080][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best\""
-			output=${HOME}/video
-			;;
-		"--section"|"-s")
-			if [[ -z "$2" ]]; then
-				error "Please provide a timeframe to download"
-				exit 1
+		--directory|-d)
+			if [[ ! -d "${1}" ]]; then
+				info "Creating output directory ${1}"
+				mkdir -p "${1}"
 			fi
-
-			# Fix args
-			if start=$(echo ${2%-*} | grep -E '[0-9]{2}:[0-9]{2}:[0-9]{2}'); then
-				:
-			elif echo ${2%-*} | grep -w "start" &>/dev/null; then
-				start="00:00:00"
-			else
-				error "Invalid format for start time"
-				exit 1
-			fi
-
-			ffmpeg_args="${ffmpeg_args} -s ${start}"
-
-			if end=$(echo ${2##*-} | grep -E '[0-9]{2}:[0-9]{2}:[0-9]{2}'); then
-			elif ! echo ${2##*-} | grep -w "end" &>/dev/null; then
-				error "Invalid format for end time"
-				exit 1
-			fi
-			ffmpeg_args="${ffmpeg_args} -to ${end}"
-
-			section=1
-			shift
+			output_dir="${1}"
 			;;
+		# "--audio"|"-a")
+		# 	# TODO: Not always available
+		# 	args="${args} --format \"bestaudio[ext=m4a]\" --extract-audio"
+		# 	output_dir=${HOME}/music
+		# 	;;
+		# "--video"|"-v")
+		# 	# TODO: Not always available
+		# 	args="${args} --format \"bestvideo[height=1080][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best\""
+		# 	output_dir=${HOME}/video
+		# 	;;
+		# "--section"|"-s")
+			# if [[ -z "$2" ]]; then
+			# 	error "Please provide a timeframe to download"
+			# 	exit 1
+			# fi
+
+			# # Fix args
+			# if start=$(echo ${2%-*} | grep -E '[0-9]{2}:[0-9]{2}:[0-9]{2}'); then
+			# 	:
+			# elif echo ${2%-*} | grep -w "start" &>/dev/null; then
+			# 	start="00:00:00"
+			# else
+			# 	error "Invalid format for start time"
+			# 	exit 1
+			# fi
+
+			# ffmpeg_args="${ffmpeg_args} -s ${start}"
+
+			# if end=$(echo ${2##*-} | grep -E '[0-9]{2}:[0-9]{2}:[0-9]{2}'); then
+			# elif ! echo ${2##*-} | grep -w "end" &>/dev/null; then
+			# 	error "Invalid format for end time"
+			# 	exit 1
+			# fi
+			# ffmpeg_args="${ffmpeg_args} -to ${end}"
+
+			# section=1
+			# shift
+			# :
+			# ;;
 		"--help"|"-h")
-			: # TODO
+			usage
 			exit 0
 			;;
 		"--batch-file"|"-b")
-			if [[ ! -f "$2" ]]; then
-				error "File does not exist"
-				exit 1
-			fi
-			args="${args} --batch-file $2"
-			shift
+			# if [[ ! -f "$2" ]]; then
+			# 	error "File does not exist"
+			# 	exit 1
+			# fi
+			# args="${args} --batch-file $2"
+			# shift
 			;;
 		*)
 			if [[ -z ${1} ]]; then
@@ -86,29 +100,28 @@ while [[ $# -gt 0 ]]; do
 				exit 1
 			fi
 
-			if [[ "${1:0:4}" != "http" ]]; then
-				error "Please provide a full URL"
+			url="$(printf "$*" | jq -sRr '@uri')"
+			if ! is_url "${url}"; then
+				error "${url} is not valid http(s) url"
 				exit 1
 			fi
 
-			if ! echo ${1} | grep "youtube" &>/dev/null; then
+			if ! echo "${url}" | grep "youtube" >/dev/null; then
 				error "Please provide a youtube URL"
 				exit 1
 			fi
-			url="$(echo $1 | sed 's/&.*$//')"
 			;;
 	esac
 	shift
 done
 
-info "yt-dlp ${args} ${url}"
+info "Executing: yt-dlp ${args} ${url}"
 yt-dlp ${args} ${url}
 
-# TODO: don't re-encode the video for performance
-if [[ ${section} ]]; then
-	info "Cutting video to given timestamps"
-	filename=$(yt-dlp --restrict-filenames --output "%(title)s.%(ext)s" --print filename ${url})
+# if [[ ${section} ]]; then
+# 	info "Cutting video to given timestamps"
+# 	filename=$(yt-dlp --restrict-filenames --output "%(title)s.%(ext)s" --print filename ${url})
 
-	info "ffmpeg ${ffmpeg_args} -i ${filename}"
-	ffmpeg ${ffmpeg_args} -i ${filename}
-fi
+# 	info "Executing: ffmpeg ${ffmpeg_args} -i ${filename}"
+# 	ffmpeg ${ffmpeg_args} -i ${filename}
+# fi
