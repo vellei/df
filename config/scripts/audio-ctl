@@ -7,9 +7,7 @@
 
 source ./utils
 
-if ! verify_installed playerctl jq pactl notify-send; then
-	exit 1
-fi
+# TODO: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name is not activatable
 
 function get_sink_name() {
 	if [[ -z "$1" ]]; then
@@ -23,14 +21,13 @@ function get_sink_name() {
 }
 
 function get_all_sinks() {
-	pactl --format=json list sinks \
-		| current=${default_sink} jq -r '.[]
-			| if .name == env.current then
-				.state="* "
+		pactl --format=json list sinks \
+		| jq --arg current "${default_sink}" -r '.[]
+			| if .name == $current then
+				"* \(.description)"
 			else
-				.state=""
+				"  \(.description)"
 			end
-			| .state + .description
 		'
 }
 
@@ -44,13 +41,25 @@ function display_volume() {
 }
 
 function change_sink() {
+	local session=$(loginctl --output=json | jq -r '.[0].session')
+	local session_type=$(loginctl show-session ${session} -p Type | sed 's/.*=//')
+
+	case "${session_type}" in
+
+	wayland)
+		command="tofi --height 200 --horizontal false --prompt-text"
+		;;
+	*)
+		command="dmenu -i -c -l 20 -p"
+		;;
+	esac
+	
 	local default_sink="$(pactl get-default-sink)"
 
-	# TODO: Tofi
 	if
 		! choice=$(printf '%s\n' "$(get_all_sinks)" \
 			| sort \
-			| dmenu -i -c -l 20 -p 'Sink: ' "$@");
+			| ${command} 'Sink: ' "$@");
 	then
 		error "Could not parse sink choice"
 		exit 1
