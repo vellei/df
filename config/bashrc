@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+shell_dir=${HOME}/.shell.d
+
+if [[ ! -d ${shell_dir} ]]; then
+  exit 0
+fi
+
+if [[ -f ${shell_dir}/functions ]]; then
+  source ${shell_dir}/functions
+fi
+
+if [[ -f ${shell_dir}/aliases ]]; then
+  source ${shell_dir}/aliases
+fi
+
+if [[ -f ${shell_dir}/user ]]; then
+  source ${shell_dir}/user
+fi
+

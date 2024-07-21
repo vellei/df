@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+if [[ -z "${ZELLIJ}" ]]; then
+  zellij
+fi
+
+export ZELLIJ_AUTO_EXIT=1
+# export BAT_THEME=catppuccin_mocha
+export VISUAL=hx
+export PAGER=bat
+# export MANROFFOPT -c
+export MANPAGER="sh -c 'col -bx | /usr/bin/bat -l man -p'"
