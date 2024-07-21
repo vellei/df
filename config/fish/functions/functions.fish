@@ -3,7 +3,7 @@
 source $HOME/.config/fish/functions/git.fish
 source $HOME/.config/fish/functions/python.fish
 
-function ls --wraps="ls" --description="Better ls"
+function l --description="Better ls"
     command exa \
         --color=auto \
         --long \
@@ -79,7 +79,7 @@ end
 
 function docker-login --description="Login to a running docker container"
     if test -z $argv
-        set image "idyllic"
+        set image idyllic
     else
         set image $argv
     end
@@ -90,7 +90,7 @@ end
 function extract --description="Extract compressed files"
     if test -z $argv
         echo "Missing arguments"
-        exit 1        
+        exit 1
     end
 
     if test ! -f $argv
@@ -111,13 +111,13 @@ function extract --description="Extract compressed files"
 end
 
 function fzf --wraps="fzf" --description="fzf with highlighting"
-	set -Ux FZF_DEFAULT_OPTS "
+    set -Ux FZF_DEFAULT_OPTS "
 		--color=fg:#908caa,bg:#191724,hl:#ebbcba
 		--color=fg+:#e0def4,bg+:#26233a,hl+:#ebbcba
 		--color=border:#403d52,header:#31748f,gutter:#191724
 		--color=spinner:#f6c177,info:#9ccfd8,separator:#403d52
 		--color=pointer:#c4a7e7,marker:#eb6f92,prompt:#908caa"
-	command fzf
+    command fzf
 end
 
 function ranger-cd --description="cd to directory on ranger close"
@@ -126,4 +126,9 @@ function ranger-cd --description="cd to directory on ranger close"
     cd (cat $dir) $argv
     rm $dir
     commandline -f repaint
+end
+
+function ns --description="Rebuild and switch nixos configuration"
+    # TODO: Check perms
+    nixos-rebuild switch
 end
