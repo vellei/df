@@ -18,7 +18,7 @@
 
   users.users.johann = {
     isNormalUser = true;
-    extraGroups = [ "wheel" ]; # Enable ‘sudo’ for the user.
+    extraGroups = [ "wheel" "docker" ];
     packages = with pkgs; [
 
       # Core dependencies
@@ -60,6 +60,7 @@
       mpd
       mpv
       ncmpcpp
+      pyradio
     ];
   };
 
